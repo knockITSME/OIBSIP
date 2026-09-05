@@ -1,0 +1,16 @@
+# ATM Interface
+
+A console-based ATM simulation developed using Java and Object-Oriented Programming.
+
+## Technologies Used
+- Java
+- OOP
+- Java Collections
+- Scanner
+
+## Features
+- PIN Authentication
+- Balance Inquiry
+- Cash Withdrawal
+- Cash Deposit
+- Exit
