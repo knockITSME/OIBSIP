@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Contact Us - Digital Library</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #1f2937;
+            color: white;
+            padding: 18px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        nav a,
+        nav button {
+            padding: 9px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        nav a {
+            background: white;
+            color: #1f2937;
+        }
+
+        nav button {
+            background: #dc2626;
+            color: white;
+        }
+
+        main {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 18px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 13px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .submit-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .message {
+            display: none;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 700px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            main {
+                margin: 20px auto;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+
+    <h1>Digital Library</h1>
+
+    <nav>
+        <a href="/books">Books</a>
+        <a href="/dashboard">Dashboard</a>
+        <button onclick="logout()">Logout</button>
+    </nav>
+
+</header>
+
+<main>
+
+    <div class="card">
+
+        <h2>Contact Us</h2>
+
+        <p class="subtitle">
+            Have a question or need help? Send us a message.
+        </p>
+
+        <div id="successMessage" class="message success"></div>
+
+        <div id="errorMessage" class="message error"></div>
+
+        <form id="contactForm">
+
+            <label for="name">Name</label>
+
+            <input
+                    type="text"
+                    id="name"
+                    placeholder="Enter your name"
+                    required
+            >
+
+            <label for="email">Email</label>
+
+            <input
+                    type="email"
+                    id="email"
+                    placeholder="Enter your email"
+                    required
+            >
+
+            <label for="message">Message</label>
+
+            <textarea
+                    id="message"
+                    placeholder="Enter your message"
+                    required
+            ></textarea>
+
+            <button type="submit" class="submit-btn">
+                Submit Query
+            </button>
+
+        </form>
+
+    </div>
+
+</main>
+
+<script>
+
+    async function loadUser() {
+
+        try {
+
+            const response = await fetch("/api/auth/me");
+
+            if (!response.ok) {
+                window.location.href = "/login";
+                return;
+            }
+
+            const user = await response.json();
+
+            document.getElementById("name").value = user.name || "";
+            document.getElementById("email").value = user.email || "";
+
+        } catch (error) {
+
+            console.error(error);
+            window.location.href = "/login";
+        }
+    }
+
+
+    document.getElementById("contactForm")
+        .addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+            const successMessage =
+                document.getElementById("successMessage");
+
+            const errorMessage =
+                document.getElementById("errorMessage");
+
+            successMessage.style.display = "none";
+            errorMessage.style.display = "none";
+
+            const query = {
+                name: document.getElementById("name").value.trim(),
+                email: document.getElementById("email").value.trim(),
+                message: document.getElementById("message").value.trim()
+            };
+
+            try {
+
+                const response = await fetch("/api/contact", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(query)
+
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to submit query.");
+                }
+
+                await response.json();
+
+                successMessage.textContent =
+                    "Your query has been submitted successfully.";
+
+                successMessage.style.display = "block";
+
+                document.getElementById("message").value = "";
+
+            } catch (error) {
+
+                console.error(error);
+
+                errorMessage.textContent =
+                    "Unable to submit your query. Please try again.";
+
+                errorMessage.style.display = "block";
+            }
+
+        });
+
+
+    async function logout() {
+
+        try {
+
+            await fetch("/api/auth/logout", {
+                method: "POST"
+            });
+
+        } finally {
+
+            window.location.href = "/login";
+        }
+    }
+
+
+    loadUser();
+
+</script>
+
+</body>
+</html>

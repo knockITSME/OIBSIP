@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Manage Books - Digital Library</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #333;
+        }
+
+        header {
+            background: #1f2937;
+            color: white;
+            padding: 18px 40px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 23px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .section h2 {
+            margin-top: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(220px, 1fr));
+
+            gap: 15px;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px;
+
+            border: 1px solid #ccc;
+            border-radius: 6px;
+
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+
+            background: #2563eb;
+            color: white;
+
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .cancel-btn {
+            background: #6b7280;
+            margin-left: 8px;
+        }
+
+        .cancel-btn:hover {
+            background: #4b5563;
+        }
+
+        .delete-btn {
+            background: #dc2626;
+        }
+
+        .delete-btn:hover {
+            background: #b91c1c;
+        }
+
+        .edit-btn {
+            background: #f59e0b;
+        }
+
+        .edit-btn:hover {
+            background: #d97706;
+        }
+
+        .action-btn {
+            margin-right: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+
+            border-bottom:
+                1px solid #ddd;
+
+            text-align: left;
+        }
+
+        th {
+            background: #f3f4f6;
+        }
+
+        .available {
+            color: green;
+            font-weight: bold;
+        }
+
+        .unavailable {
+            color: red;
+            font-weight: bold;
+        }
+
+        #message {
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .back:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 800px) {
+
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>Manage Books</h1>
+
+    <nav>
+
+        <a href="/admin">Admin Dashboard</a>
+
+        <a href="/books">Catalogue</a>
+
+    </nav>
+
+</header>
+
+
+<div class="container">
+
+
+    <a href="/admin"
+       class="back">
+        ← Back to Admin Dashboard
+    </a>
+
+
+    <!-- Add / Edit Book -->
+
+    <div class="section">
+
+        <h2 id="formTitle">
+            Add New Book
+        </h2>
+
+
+        <form id="bookForm">
+
+
+            <div class="form-grid">
+
+
+                <input
+                        type="text"
+                        id="title"
+                        placeholder="Book Title"
+                        required
+                >
+
+
+                <input
+                        type="text"
+                        id="author"
+                        placeholder="Author"
+                        required
+                >
+
+
+                <input
+                        type="text"
+                        id="isbn"
+                        placeholder="ISBN"
+                        required
+                >
+
+
+                <input
+                        type="text"
+                        id="category"
+                        placeholder="Category"
+                        required
+                >
+
+
+                <input
+                        type="number"
+                        id="quantity"
+                        placeholder="Quantity"
+                        min="1"
+                        required
+                >
+
+
+            </div>
+
+
+            <br>
+
+
+            <button type="submit">
+                Save Book
+            </button>
+
+
+            <button
+                    type="button"
+                    class="cancel-btn"
+                    id="cancelButton"
+                    onclick="cancelEdit()"
+                    style="display:none;"
+            >
+                Cancel
+            </button>
+
+
+        </form>
+
+
+        <div id="message"></div>
+
+    </div>
+
+
+    <!-- Books List -->
+
+    <div class="section">
+
+        <h2>Library Catalogue</h2>
+
+
+        <div id="booksContainer">
+
+            Loading books...
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+
+    let editingBookId = null;
+
+
+    /*
+     * Check admin before loading page
+     */
+
+    async function checkAdmin() {
+
+        try {
+
+            const response =
+                await fetch("/api/auth/me");
+
+
+            if (!response.ok) {
+
+                window.location.href = "/login";
+
+                return false;
+
+            }
+
+
+            const user =
+                await response.json();
+
+
+            if (user.role !== "ADMIN") {
+
+                alert(
+                    "Access denied. Admin privileges required."
+                );
+
+                window.location.href = "/dashboard";
+
+                return false;
+
+            }
+
+
+            return true;
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            window.location.href = "/login";
+
+            return false;
+
+        }
+
+    }
+
+
+    /*
+     * Load all books
+     */
+
+    async function loadBooks() {
+
+        try {
+
+            const response =
+                await fetch("/api/books");
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load books"
+                );
+
+            }
+
+
+            const books =
+                await response.json();
+
+
+            displayBooks(books);
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            document.getElementById(
+                "booksContainer"
+            ).innerText =
+                "Unable to load books.";
+
+        }
+
+    }
+
+
+    /*
+     * Display books
+     */
+
+    function displayBooks(books) {
+
+        const container =
+            document.getElementById(
+                "booksContainer"
+            );
+
+
+        if (books.length === 0) {
+
+            container.innerHTML =
+                "<p>No books available.</p>";
+
+            return;
+
+        }
+
+
+        let html = `
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>Title</th>
+
+                        <th>Author</th>
+
+                        <th>ISBN</th>
+
+                        <th>Category</th>
+
+                        <th>Total</th>
+
+                        <th>Available</th>
+
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+        `;
+
+
+        books.forEach(book => {
+
+
+            const availabilityClass =
+                book.availableQuantity > 0
+                ? "available"
+                : "unavailable";
+
+
+            html += `
+
+                <tr>
+
+                    <td>
+                        ${book.id}
+                    </td>
+
+                    <td>
+                        ${book.title}
+                    </td>
+
+                    <td>
+                        ${book.author}
+                    </td>
+
+                    <td>
+                        ${book.isbn}
+                    </td>
+
+                    <td>
+                        ${book.category}
+                    </td>
+
+                    <td>
+                        ${book.quantity}
+                    </td>
+
+                    <td class="${availabilityClass}">
+                        ${book.availableQuantity}
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="edit-btn action-btn"
+                            onclick="editBook(
+                                ${book.id},
+                                '${escapeForJS(book.title)}',
+                                '${escapeForJS(book.author)}',
+                                '${escapeForJS(book.isbn)}',
+                                '${escapeForJS(book.category)}',
+                                ${book.quantity}
+                            )"
+                        >
+                            Edit
+                        </button>
+
+
+                        <button
+                            class="delete-btn action-btn"
+                            onclick="deleteBook(${book.id})"
+                        >
+                            Delete
+                        </button>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
+
+
+        html += `
+
+                </tbody>
+
+            </table>
+
+        `;
+
+
+        container.innerHTML = html;
+
+    }
+
+
+    /*
+     * Save / Update book
+     */
+
+    document
+        .getElementById("bookForm")
+        .addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+
+                const book = {
+
+                    title:
+                        document.getElementById(
+                            "title"
+                        ).value,
+
+                    author:
+                        document.getElementById(
+                            "author"
+                        ).value,
+
+                    isbn:
+                        document.getElementById(
+                            "isbn"
+                        ).value,
+
+                    category:
+                        document.getElementById(
+                            "category"
+                        ).value,
+
+                    quantity:
+                        parseInt(
+                            document.getElementById(
+                                "quantity"
+                            ).value
+                        )
+
+                };
+
+
+                try {
+
+
+                    let response;
+
+
+                    /*
+                     * Add new book
+                     */
+
+                    if (editingBookId === null) {
+
+                        response =
+                            await fetch(
+                                "/api/books",
+                                {
+                                    method: "POST",
+
+                                    headers: {
+                                        "Content-Type":
+                                            "application/json"
+                                    },
+
+                                    body:
+                                        JSON.stringify(
+                                            book
+                                        )
+                                }
+                            );
+
+                    }
+
+
+                    /*
+                     * Update existing book
+                     */
+
+                    else {
+
+                        response =
+                            await fetch(
+                                `/api/books/${editingBookId}`,
+                                {
+                                    method: "PUT",
+
+                                    headers: {
+                                        "Content-Type":
+                                            "application/json"
+                                    },
+
+                                    body:
+                                        JSON.stringify(
+                                            book
+                                        )
+                                }
+                            );
+
+                    }
+
+
+                    if (!response.ok) {
+
+                        const errorText =
+                            await response.text();
+
+                        throw new Error(
+                            errorText ||
+                            "Unable to save book"
+                        );
+
+                    }
+
+
+                    showMessage(
+                        editingBookId === null
+                        ? "Book added successfully."
+                        : "Book updated successfully."
+                    );
+
+
+                    cancelEdit();
+
+                    loadBooks();
+
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    showMessage(
+                        "Error: " + error.message
+                    );
+
+                }
+
+            }
+        );
+
+
+    /*
+     * Edit book
+     */
+
+    function editBook(
+        id,
+        title,
+        author,
+        isbn,
+        category,
+        quantity
+    ) {
+
+
+        editingBookId = id;
+
+
+        document.getElementById("title").value =
+            title;
+
+        document.getElementById("author").value =
+            author;
+
+        document.getElementById("isbn").value =
+            isbn;
+
+        document.getElementById("category").value =
+            category;
+
+        document.getElementById("quantity").value =
+            quantity;
+
+
+        document.getElementById("formTitle")
+            .innerText =
+            "Edit Book";
+
+
+        document.getElementById("cancelButton")
+            .style.display =
+            "inline-block";
+
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+
+    }
+
+
+    /*
+     * Cancel editing
+     */
+
+    function cancelEdit() {
+
+        editingBookId = null;
+
+
+        document.getElementById(
+            "bookForm"
+        ).reset();
+
+
+        document.getElementById("formTitle")
+            .innerText =
+            "Add New Book";
+
+
+        document.getElementById("cancelButton")
+            .style.display =
+            "none";
+
+    }
+
+
+    /*
+     * Delete book
+     */
+
+    async function deleteBook(id) {
+
+
+        const confirmed =
+            confirm(
+                "Are you sure you want to delete this book?"
+            );
+
+
+        if (!confirmed) {
+
+            return;
+
+        }
+
+
+        try {
+
+
+            const response =
+                await fetch(
+                    `/api/books/${id}`,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to delete book"
+                );
+
+            }
+
+
+            showMessage(
+                "Book deleted successfully."
+            );
+
+
+            loadBooks();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            showMessage(
+                "Error: " + error.message
+            );
+
+        }
+
+    }
+
+
+    /*
+     * Simple JavaScript escaping
+     */
+
+    function escapeForJS(value) {
+
+        return String(value)
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'");
+
+    }
+
+
+    /*
+     * Display message
+     */
+
+    function showMessage(message) {
+
+        const element =
+            document.getElementById(
+                "message"
+            );
+
+
+        element.innerText = message;
+
+
+        setTimeout(
+            () => {
+                element.innerText = "";
+            },
+            3000
+        );
+
+    }
+
+
+    /*
+     * Start page
+     */
+
+    async function startPage() {
+
+        const isAdmin =
+            await checkAdmin();
+
+
+        if (isAdmin) {
+
+            loadBooks();
+
+        }
+
+    }
+
+
+    startPage();
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Contact Queries - Admin</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #1f2937;
+            color: white;
+            padding: 18px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button,
+        a {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 15px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .back-btn {
+            background: white;
+            color: #1f2937;
+        }
+
+        .logout-btn {
+            background: #dc2626;
+            color: white;
+        }
+
+        main {
+            padding: 30px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .page-title {
+            margin-bottom: 20px;
+        }
+
+        .page-title h2 {
+            margin-bottom: 5px;
+        }
+
+        .page-title p {
+            color: #666;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .message {
+            max-width: 450px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #777;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 700px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            main {
+                padding: 15px;
+            }
+
+            th,
+            td {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Library Admin</h1>
+
+    <div class="header-buttons">
+        <a href="/admin" class="back-btn">Admin Dashboard</a>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</header>
+
+<main>
+
+    <div class="page-title">
+        <h2>Contact Queries</h2>
+        <p>View messages submitted by library users.</p>
+    </div>
+
+    <div id="errorMessage" class="error"></div>
+
+    <div class="card">
+
+        <table id="queriesTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Message</th>
+                <th>Submitted At</th>
+            </tr>
+            </thead>
+
+            <tbody id="queriesBody">
+            </tbody>
+        </table>
+
+        <div id="emptyMessage" class="empty" style="display: none;">
+            No contact queries found.
+        </div>
+
+    </div>
+
+</main>
+
+<script>
+
+    async function checkAdmin() {
+
+        try {
+
+            const response = await fetch("/api/auth/me");
+
+            if (!response.ok) {
+                window.location.href = "/login";
+                return false;
+            }
+
+            const user = await response.json();
+
+            if (user.role !== "ADMIN") {
+                alert("Access denied. Admins only.");
+                window.location.href = "/books";
+                return false;
+            }
+
+            return true;
+
+        } catch (error) {
+
+            console.error(error);
+            window.location.href = "/login";
+            return false;
+        }
+    }
+
+
+    async function loadQueries() {
+
+        try {
+
+            const response = await fetch("/api/contact");
+
+            if (!response.ok) {
+                throw new Error("Failed to load contact queries.");
+            }
+
+            const queries = await response.json();
+
+            const tbody = document.getElementById("queriesBody");
+            const table = document.getElementById("queriesTable");
+            const emptyMessage = document.getElementById("emptyMessage");
+
+            tbody.innerHTML = "";
+
+            if (queries.length === 0) {
+
+                table.style.display = "none";
+                emptyMessage.style.display = "block";
+                return;
+            }
+
+            table.style.display = "table";
+            emptyMessage.style.display = "none";
+
+            queries.forEach(query => {
+
+                const row = document.createElement("tr");
+
+                const submittedAt = query.submittedAt
+                    ? new Date(query.submittedAt).toLocaleString()
+                    : "-";
+
+                row.innerHTML = `
+                    <td>${query.id}</td>
+                    <td>${escapeHtml(query.name)}</td>
+                    <td>${escapeHtml(query.email)}</td>
+                    <td class="message">${escapeHtml(query.message)}</td>
+                    <td>${submittedAt}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            const errorMessage =
+                document.getElementById("errorMessage");
+
+            errorMessage.textContent =
+                "Unable to load contact queries.";
+
+            errorMessage.style.display = "block";
+        }
+    }
+
+
+    function escapeHtml(value) {
+
+        if (value === null || value === undefined) {
+            return "";
+        }
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    async function logout() {
+
+        try {
+
+            await fetch("/api/auth/logout", {
+                method: "POST"
+            });
+
+        } finally {
+
+            window.location.href = "/login";
+        }
+    }
+
+
+    async function init() {
+
+        const isAdmin = await checkAdmin();
+
+        if (isAdmin) {
+            await loadQueries();
+        }
+    }
+
+    init();
+
+</script>
+
+</body>
+</html>

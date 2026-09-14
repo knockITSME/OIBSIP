@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Digital Library - Books</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            color: #222;
+        }
+
+        header {
+            background: #1e3a8a;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 24px;
+        }
+
+        nav a,
+        nav button {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        nav a:hover,
+        nav button:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+
+        .top-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .top-section h2 {
+            color: #1e3a8a;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        input,
+        select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            min-width: 200px;
+        }
+
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+            gap: 20px;
+        }
+
+        .book-card {
+            background: white;
+            padding: 22px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
+        .book-card h3 {
+            color: #1e3a8a;
+            margin-bottom: 10px;
+        }
+
+        .book-card p {
+            margin: 7px 0;
+            color: #555;
+        }
+
+        .available {
+            color: green;
+            font-weight: bold;
+        }
+
+        .unavailable {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            font-size: 14px;
+        }
+
+        .issue-btn {
+            background: #2563eb;
+        }
+
+        .issue-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .booking-btn {
+            background: #7c3aed;
+        }
+
+        .booking-btn:hover {
+            background: #6d28d9;
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .login-warning {
+            background: #fff7ed;
+            color: #9a3412;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .booking-status {
+            margin-top: 10px;
+            padding: 8px;
+            background: #ede9fe;
+            color: #5b21b6;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Digital Library</h1>
+
+    <nav>
+        <a href="/">Home</a>
+        <a href="/books">Books</a>
+        <a href="/dashboard">Dashboard</a>
+        <button onclick="logout()">Logout</button>
+    </nav>
+</header>
+
+<div class="container">
+
+    <div class="top-section">
+        <h2>Library Books</h2>
+
+        <div class="filters">
+            <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search by title..."
+                    oninput="searchBooks()"
+            >
+
+            <select id="categoryFilter" onchange="filterBooks()">
+                <option value="">All Categories</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div id="loginWarning" class="login-warning">
+        Please login to issue or advance book a book.
+    </div>
+
+    <div id="booksContainer" class="books-grid">
+        <div class="loading">Loading books...</div>
+    </div>
+
+</div>
+
+<script>
+
+    let currentUserId = null;
+    let allBooks = [];
+    let userBookings = [];
+
+    // ==============================
+    // GET CURRENT USER
+    // ==============================
+
+    async function loadCurrentUser() {
+
+        try {
+
+            const response = await fetch("/api/auth/me");
+
+            if (!response.ok) {
+                document.getElementById("loginWarning").style.display = "block";
+                return;
+            }
+
+            const user = await response.json();
+
+            currentUserId = user.id;
+
+            await loadUserBookings();
+
+        } catch (error) {
+
+            console.error("User check failed:", error);
+
+            document.getElementById("loginWarning").style.display = "block";
+        }
+    }
+
+
+    // ==============================
+    // LOAD USER BOOKINGS
+    // ==============================
+
+    async function loadUserBookings() {
+
+        if (!currentUserId) {
+            return;
+        }
+
+        try {
+
+            const response =
+                await fetch(`/api/bookings/user/${currentUserId}`);
+
+            if (!response.ok) {
+                return;
+            }
+
+            userBookings = await response.json();
+
+        } catch (error) {
+
+            console.error("Could not load bookings:", error);
+        }
+    }
+
+
+    // ==============================
+    // LOAD BOOKS
+    // ==============================
+
+    async function loadBooks() {
+
+        try {
+
+            const response = await fetch("/api/books");
+
+            if (!response.ok) {
+                throw new Error("Failed to load books");
+            }
+
+            allBooks = await response.json();
+
+            populateCategories();
+
+            displayBooks(allBooks);
+
+        } catch (error) {
+
+            document.getElementById("booksContainer").innerHTML =
+                `<div class="error message" style="display:block;">
+                    Unable to load books.
+                 </div>`;
+        }
+    }
+
+
+    // ==============================
+    // DISPLAY BOOKS
+    // ==============================
+
+    function displayBooks(books) {
+
+        const container =
+            document.getElementById("booksContainer");
+
+        container.innerHTML = "";
+
+        if (books.length === 0) {
+
+            container.innerHTML =
+                "<p>No books found.</p>";
+
+            return;
+        }
+
+
+        books.forEach(book => {
+
+            const card =
+                document.createElement("div");
+
+            card.className = "book-card";
+
+
+            let availabilityHTML = "";
+
+            if (book.availableQuantity > 0) {
+
+                availabilityHTML =
+                    `<p class="available">
+                        Available: ${book.availableQuantity}
+                    </p>`;
+
+            } else {
+
+                availabilityHTML =
+                    `<p class="unavailable">
+                        Currently Unavailable
+                    </p>`;
+            }
+
+
+            let buttonHTML = "";
+
+            if (!currentUserId) {
+
+                buttonHTML =
+                    `<button
+                        class="btn"
+                        disabled>
+                        Login to Issue
+                    </button>`;
+
+            } else if (book.availableQuantity > 0) {
+
+                buttonHTML =
+                    `<button
+                        class="btn issue-btn"
+                        onclick="issueBook(${book.id})">
+                        Issue Book
+                    </button>`;
+
+            } else {
+
+                const existingBooking =
+                    userBookings.find(
+                        booking =>
+                            booking.book &&
+                            booking.book.id === book.id &&
+                            booking.status === "PENDING"
+                    );
+
+
+                if (existingBooking) {
+
+                    buttonHTML =
+                        `<button
+                            class="btn"
+                            disabled>
+                            Already Booked
+                        </button>
+
+                        <div class="booking-status">
+                            Advance booking: PENDING
+                        </div>`;
+
+                } else {
+
+                    buttonHTML =
+                        `<button
+                            class="btn booking-btn"
+                            onclick="advanceBook(${book.id})">
+                            Advance Book
+                        </button>`;
+                }
+            }
+
+
+            card.innerHTML = `
+
+                <h3>${escapeHtml(book.title)}</h3>
+
+                <p>
+                    <strong>Author:</strong>
+                    ${escapeHtml(book.author)}
+                </p>
+
+                <p>
+                    <strong>ISBN:</strong>
+                    ${escapeHtml(book.isbn)}
+                </p>
+
+                <p>
+                    <strong>Category:</strong>
+                    ${escapeHtml(book.category)}
+                </p>
+
+                <p>
+                    <strong>Total Quantity:</strong>
+                    ${book.quantity}
+                </p>
+
+                ${availabilityHTML}
+
+                <div class="buttons">
+                    ${buttonHTML}
+                </div>
+            `;
+
+
+            container.appendChild(card);
+
+        });
+    }
+
+
+    // ==============================
+    // ISSUE BOOK
+    // ==============================
+
+    async function issueBook(bookId) {
+
+        if (!currentUserId) {
+
+            showMessage(
+                "Please login first.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `/api/borrow/issue/${currentUserId}/${bookId}`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                const errorText =
+                    await response.text();
+
+                throw new Error(
+                    errorText || "Unable to issue book"
+                );
+            }
+
+
+            showMessage(
+                "Book issued successfully. Due date is 14 days from today.",
+                "success"
+            );
+
+
+            await loadBooks();
+
+        } catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+        }
+    }
+
+
+    // ==============================
+    // ADVANCE BOOKING
+    // ==============================
+
+    async function advanceBook(bookId) {
+
+        if (!currentUserId) {
+
+            showMessage(
+                "Please login first.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        const confirmed =
+            confirm(
+                "This book is currently unavailable. Do you want to place an advance booking?"
+            );
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `/api/bookings/book?userId=${currentUserId}&bookId=${bookId}`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                const errorText =
+                    await response.text();
+
+                throw new Error(
+                    errorText || "Unable to create booking"
+                );
+            }
+
+
+            showMessage(
+                "Advance booking created successfully.",
+                "success"
+            );
+
+
+            await loadUserBookings();
+
+            displayBooks(allBooks);
+
+        } catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+        }
+    }
+
+
+    // ==============================
+    // SEARCH
+    // ==============================
+
+    function searchBooks() {
+
+        const search =
+            document
+                .getElementById("searchInput")
+                .value
+                .toLowerCase()
+                .trim();
+
+
+        if (!search) {
+
+            displayBooks(allBooks);
+
+            return;
+        }
+
+
+        const filtered =
+            allBooks.filter(book =>
+                book.title &&
+                book.title.toLowerCase().includes(search)
+            );
+
+
+        displayBooks(filtered);
+    }
+
+
+    // ==============================
+    // CATEGORY FILTER
+    // ==============================
+
+    function filterBooks() {
+
+        const category =
+            document
+                .getElementById("categoryFilter")
+                .value;
+
+
+        if (!category) {
+
+            displayBooks(allBooks);
+
+            return;
+        }
+
+
+        const filtered =
+            allBooks.filter(
+                book => book.category === category
+            );
+
+
+        displayBooks(filtered);
+    }
+
+
+    // ==============================
+    // POPULATE CATEGORIES
+    // ==============================
+
+    function populateCategories() {
+
+        const select =
+            document.getElementById("categoryFilter");
+
+        const categories =
+            [...new Set(
+                allBooks
+                    .map(book => book.category)
+                    .filter(category => category)
+            )];
+
+
+        categories.forEach(category => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = category;
+            option.textContent = category;
+
+            select.appendChild(option);
+        });
+    }
+
+
+    // ==============================
+    // MESSAGE
+    // ==============================
+
+    function showMessage(text, type) {
+
+        const message =
+            document.getElementById("message");
+
+        message.textContent = text;
+
+        message.className =
+            `message ${type}`;
+
+        message.style.display = "block";
+
+
+        setTimeout(() => {
+
+            message.style.display = "none";
+
+        }, 4000);
+    }
+
+
+    // ==============================
+    // HTML SAFETY
+    // ==============================
+
+    function escapeHtml(value) {
+
+        if (value === null || value === undefined) {
+            return "";
+        }
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    // ==============================
+    // LOGOUT
+    // ==============================
+
+    async function logout() {
+
+        try {
+
+            await fetch(
+                "/api/auth/logout",
+                {
+                    method: "POST"
+                }
+            );
+
+        } catch (error) {
+
+            console.error(error);
+        }
+
+        window.location.href = "/login";
+    }
+
+
+    // ==============================
+    // INITIAL LOAD
+    // ==============================
+
+    async function initialize() {
+
+        await loadCurrentUser();
+
+        await loadBooks();
+
+    }
+
+    initialize();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Library Management System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            color: #222;
+        }
+
+        nav {
+            background: #1e3a5f;
+            color: white;
+            padding: 18px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav h2 {
+            font-size: 22px;
+        }
+
+        .nav-buttons a {
+            text-decoration: none;
+            color: white;
+            margin-left: 15px;
+            padding: 9px 18px;
+            border: 1px solid white;
+            border-radius: 5px;
+        }
+
+        .nav-buttons a:hover {
+            background: white;
+            color: #1e3a5f;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 90px 20px;
+            background: white;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            color: #1e3a5f;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .hero a {
+            display: inline-block;
+            text-decoration: none;
+            background: #1e3a5f;
+            color: white;
+            padding: 13px 28px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .hero a:hover {
+            background: #142b46;
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding: 50px 30px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            width: 250px;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h3 {
+            color: #1e3a5f;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #1e3a5f;
+            color: white;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <h2>Digital Library</h2>
+
+    <div class="nav-buttons">
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+    </div>
+</nav>
+
+<section class="hero">
+
+    <h1>Digital Library Management System</h1>
+
+    <p>
+        Browse, issue and return books with ease.
+    </p>
+
+    <a href="/books">Browse Books</a>
+
+</section>
+
+<section class="features">
+
+    <div class="card">
+        <h3>📚 Book Catalogue</h3>
+        <p>
+            Browse available books and search by title, author or category.
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>📖 Issue Books</h3>
+        <p>
+            Issue available books and keep track of your due dates.
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>↩ Return Books</h3>
+        <p>
+            Return books and automatically calculate overdue fines.
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>🔖 Advance Booking</h3>
+        <p>
+            Book a currently unavailable book for future availability.
+        </p>
+    </div>
+
+</section>
+
+<footer>
+    <p>Digital Library Management System | OIBSIP Internship Project</p>
+</footer>
+
+</body>
+</html>
